@@ -1,6 +1,9 @@
 from typing import Optional
 
-from ares import AresBot, Hub, ManagerMediator, UnitRole
+from ares import AresBot
+from ares.managers.manager_mediator import ManagerMediator
+from ares.consts import UnitRole
+from ares.managers.hub import Hub
 from ares.behaviors.macro import BuildStructure
 from ares.managers.manager import Manager
 from loguru import logger

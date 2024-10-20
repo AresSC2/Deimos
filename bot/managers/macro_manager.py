@@ -1,5 +1,8 @@
 from typing import TYPE_CHECKING
 
+from cython_extensions import cy_unit_pending
+from sc2.ids.upgrade_id import UpgradeId
+
 from ares import ManagerMediator, UnitRole
 from ares.behaviors.macro import (
     AutoSupply,
@@ -11,6 +14,7 @@ from ares.behaviors.macro import (
     ProductionController,
     SpawnController,
 )
+from ares.behaviors.macro.upgrade_controller import UpgradeController
 from ares.managers.manager import Manager
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId as UnitID
@@ -84,6 +88,44 @@ class MacroManager(Manager):
         return max_probes
 
     @property
+    def upgrades_enabled(self) -> bool:
+        return len(self.ai.gas_buildings) >= 4 and self.ai.supply_army > 20
+
+    @property
+    def upgrade_list(self) -> list[UpgradeId]:
+        desired_upgrades: list[UpgradeId] = [
+            UpgradeId.WARPGATERESEARCH,
+            UpgradeId.PROTOSSGROUNDWEAPONSLEVEL1,
+            UpgradeId.PROTOSSGROUNDARMORSLEVEL1,
+            UpgradeId.PROTOSSGROUNDWEAPONSLEVEL2,
+            UpgradeId.PROTOSSGROUNDARMORSLEVEL2,
+            UpgradeId.PROTOSSGROUNDWEAPONSLEVEL3,
+            UpgradeId.PROTOSSGROUNDARMORSLEVEL3,
+        ]
+
+        if self.manager_mediator.get_own_army_dict[UnitID.TEMPEST] or cy_unit_pending(
+            self.ai, UnitID.TEMPEST
+        ):
+            desired_upgrades.extend(
+                [
+                    UpgradeId.TEMPESTGROUNDATTACKUPGRADE,
+                    UpgradeId.PROTOSSAIRWEAPONSLEVEL1,
+                    UpgradeId.PROTOSSAIRARMORSLEVEL1,
+                    UpgradeId.PROTOSSAIRWEAPONSLEVEL2,
+                    UpgradeId.PROTOSSAIRARMORSLEVEL2,
+                    UpgradeId.PROTOSSAIRWEAPONSLEVEL3,
+                    UpgradeId.PROTOSSAIRARMORSLEVEL3,
+                ]
+            )
+
+        if self.manager_mediator.get_own_army_dict[UnitID.COLOSSUS] or cy_unit_pending(
+            self.ai, UnitID.COLOSSUS
+        ):
+            desired_upgrades.append(UpgradeId.EXTENDEDTHERMALLANCE)
+
+        return desired_upgrades
+
+    @property
     def require_observer(self) -> bool:
         if (
             self.deimos_mediator.get_enemy_rushed
@@ -122,6 +164,12 @@ class MacroManager(Manager):
 
         if self.ai.build_order_runner.build_completed:
             macro_plan: MacroPlan = MacroPlan()
+            if self.upgrades_enabled:
+                macro_plan.add(
+                    UpgradeController(
+                        self.upgrade_list, base_location=self._main_building_location
+                    )
+                )
             macro_plan.add(AutoSupply(self._main_building_location))
             macro_plan.add(BuildWorkers(self.max_probes))
             if self.require_observer:
@@ -156,6 +204,7 @@ class MacroManager(Manager):
                         max_pending=1 if self.ai.supply_workers < 60 else 3,
                     )
                 )
+
             add_production_at_bank: tuple = (300, 300)
             alpha: float = 0.6
             if self.deimos_mediator.get_enemy_rushed:

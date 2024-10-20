@@ -138,23 +138,31 @@ class ArmyCompManager(Manager):
         )
 
     async def update(self, iteration: int) -> None:
+        enemy_army_dict: dict = self.manager_mediator.get_enemy_army_dict
         if (
             self.manager_mediator.get_enemy_worker_rushed and self.ai.supply_used < 26
         ) or (self.manager_mediator.get_enemy_ling_rushed and not self.core_ready):
             self._army_comp = self.zealot_only
         elif self.ai.build_order_runner.chosen_opening == "OneBaseTempests" or (
             self.ai.enemy_race == Race.Terran
-            and len(self.ai.enemy_structures(UnitID.BUNKER)) >= 2
+            and (
+                len(self.ai.enemy_structures(UnitID.BUNKER)) >= 2
+                or (
+                    len(enemy_army_dict[UnitID.SIEGETANKSIEGED])
+                    + len(enemy_army_dict[UnitID.SIEGETANK])
+                    >= 3
+                )
+            )
         ):
             self._army_comp = self.tempests_comp
         elif (
-            len(self.manager_mediator.get_enemy_army_dict[UnitID.MARINE]) > 6
+            len(enemy_army_dict[UnitID.MARINE]) > 6
             and self.ai.supply_army < 32
             and not self.ai.enemy_structures(UnitID.FACTORYTECHLAB)
         ):
             self._army_comp = self.stalker_comp
         elif (
-            len(self.manager_mediator.get_enemy_army_dict[UnitID.MUTALISK]) > 1
+            len(enemy_army_dict[UnitID.MUTALISK]) > 1
             and len(self.manager_mediator.get_own_army_dict[UnitID.PHOENIX]) < 4
         ):
             self._army_comp = self.stalker_phoenix_comp
@@ -166,9 +174,7 @@ class ArmyCompManager(Manager):
             self._army_comp = self.stalker_tempests_comp
         elif self.manager_mediator.get_enemy_ling_rushed and (
             self.ai.supply_army
-            < self.ai.get_total_supply(
-                self.manager_mediator.get_enemy_army_dict[UnitID.ZERGLING]
-            )
+            < self.ai.get_total_supply(enemy_army_dict[UnitID.ZERGLING])
             or self.ai.supply_army < 20
         ):
             self._army_comp = self.adept_only_comp
