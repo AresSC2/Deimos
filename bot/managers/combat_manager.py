@@ -222,7 +222,9 @@ class CombatManager(Manager):
 
     def _check_aggressive_status(self) -> None:
         reapers: Units = self.manager_mediator.get_enemy_army_dict[UnitID.REAPER]
-        if len(reapers) >= 3 and (
+        if self.manager_mediator.get_enemy_went_marine_rush and self.ai.supply_army < 50:
+            self.aggressive = False
+        elif len(reapers) >= 3 and (
             (self.ai.supply_army * 1.2) < self.ai.get_total_supply(reapers)
             or self.ai.supply_army < 14
         ):

@@ -57,6 +57,7 @@ class WorkerDefenceManager(Manager):
             UnitID.MARINE: 0,
             UnitID.SCV: 1,
             UnitID.ZERGLING: 2,
+            UnitID.ZEALOT: 4
         }
 
         self._proxy_to_workers_required: dict[UnitID, int] = {
@@ -114,15 +115,14 @@ class WorkerDefenceManager(Manager):
             return 0
 
         num_probes_required: int = 0
-        if not self.manager_mediator.get_is_proxy_zealot:
-            for s in self.deimos_mediator.get_enemy_proxies:
-                if s.type_id in self._proxy_to_workers_required:
-                    if (
-                        len(self.manager_mediator.get_enemy_army_dict[UnitID.MARAUDER])
-                        >= 2
-                    ):
-                        return 0
-                    num_probes_required += self._proxy_to_workers_required[s.type_id]
+        for s in self.deimos_mediator.get_enemy_proxies:
+            if s.type_id in self._proxy_to_workers_required:
+                if (
+                    len(self.manager_mediator.get_enemy_army_dict[UnitID.MARAUDER])
+                    >= 2
+                ):
+                    return 0
+                num_probes_required += self._proxy_to_workers_required[s.type_id]
 
         num_enemy: int = 0
         if num_probes_required == 0:
